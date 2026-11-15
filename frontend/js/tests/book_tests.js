@@ -51,7 +51,15 @@
      const formData = new FormData();
      formData.append('title', 'Don Quijote de la Mancha');
      formData.append('author', 'Miguel de Cervantes');
-     formData.append('category', 'Novela');
+
+     //agregado
+     const catResponse = await fetch('/api/categories', {
+         headers: { 'Authorization': `Bearer ${token}` }
+     });
+     const categories = await catResponse.json();
+     formData.append('category_id', categories[0].id);
+     
+     
      formData.append('pages', '862');
  
      /**
@@ -73,6 +81,107 @@
      testUtils.log(data);
      
      if (response.ok) 
+     {
+         testUtils.setSuccess(btn);
+     }
+
+     
+ });
+
+ 
+
+  // 3. Test Editar Metadatos - Requerimiento A (PUT)
+ testUtils.createTestButton("Test Editar Metadatos (Req. A)", async (btn) => 
+ {
+     // 1. Setup: Iniciar sesión para obtener el token
+     await okLogin();
+     const token = localStorage.getItem('test_token');
+     const authHeader = { 'Authorization': `Bearer ${token}` };
+
+     // 2. Datos reales: no se asume ningún id fijo, se toman de la API
+     const categories = await (await fetch('/api/categories', { headers: authHeader })).json();
+     const books = await (await fetch('/api/books/my-books', { headers: authHeader })).json();
+
+     if (books.length === 0)
+     {
+         testUtils.log({ message: 'No hay libros para editar. Ejecutá primero "Test Subir Libro PDF (Simulado)".' });
+         return;
+     }
+
+     // 3. JSON con los datos nuevos (la categoría se envía como id, no como texto)
+     const updatedData = {
+         title: 'El Señor de los Anillos: La Comunidad del Anillo',
+         author: 'J.R.R. Tolkien',
+         category_id: categories[categories.length - 1].id,
+         pages: 423
+     };
+     
+     // 4. Ejecutar: PUT sobre el primer libro del usuario
+     const response = await fetch(`/api/books/${books[0].id}`, {
+         method: 'PUT',
+         headers: { ...authHeader, 'Content-Type': 'application/json' },
+         body: JSON.stringify(updatedData)
+     });
+ 
+     // 5. Leer respuesta para la consola virtual
+     const data = await response.json();
+     testUtils.log(data);
+     
+     // 6. Assert: Verificar que el servidor devolvió un 200 OK
+     if (response.ok) 
+     {
+         testUtils.setSuccess(btn);
+     }
+ });
+
+
+
+
+  // 4. Listar Categorías (GET protegido)
+ testUtils.createTestButton("Test Listar Categorías", async (btn) => 
+ {
+     await okLogin();
+     const token = localStorage.getItem('test_token');
+     
+     const response = await fetch('/api/categories', {
+         headers: { 'Authorization': `Bearer ${token}` }
+     });
+     
+     const data = await response.json();
+     testUtils.log(data);
+     
+     if (response.ok && data.length >= 5) 
+     {
+         testUtils.setSuccess(btn);
+     }
+ });
+ 
+ // 5. Subir Libro con categoría inexistente (debe fallar con 400)
+ testUtils.createTestButton("Test Categoría Inexistente (espera 400)", async (btn) => 
+ {
+     await okLogin();
+     const token = localStorage.getItem('test_token');
+     
+     const formData = new FormData();
+     formData.append('title', 'Libro de prueba');
+     formData.append('author', 'Autor de prueba');
+     formData.append('category_id', '9999');
+     formData.append('pages', '10');
+ 
+     const blob = new Blob(["%PDF-1.4 Simulated PDF Document Content"], { type: 'application/pdf' });
+     formData.append('pdfFile', blob, 'prueba.pdf');
+ 
+     const response = await fetch('/api/books/upload', {
+         method: 'POST',
+         headers: { 'Authorization': `Bearer ${token}` },
+         body: formData
+     });
+ 
+     const data = await response.json();
+     testUtils.log(data);
+     
+     // Aquí el éxito es que el sistema RECHACE la petición con un 400 controlado
+     if (response.status === 400) 
      {
          testUtils.setSuccess(btn);
      }

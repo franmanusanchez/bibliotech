@@ -3,6 +3,7 @@
     "CT_INVALID_RESOURCE_CONSTANT": "Recurso de lenguaje inválido o clave inexistente.",
     "CT_MYSQL_ER_DUP_ENTRY": "El nombre de usuario u otra entrada ya está registrada en el sistema.",
     "CT_MYSQL_ECONNREFUSED": "Servicio de base de datos no disponible temporalmente.",
+    "CT_MYSQL_ER_NO_REFERENCED_ROW_2": "El registro relacionado indicado no existe (por ejemplo, una categoría inválida).",
     "CT_REQ_USERNAME": "El nombre de usuario es obligatorio.",
     "CT_REQ_PASSWORD": "La contraseña es obligatoria.",
     "CT_PASS_TOO_SHORT": "La contraseña debe tener al menos 6 caracteres.",
@@ -26,5 +27,6 @@
     "CT_AUTH_LOGIN_SUCCESS": "Login exitoso.",
     "CT_BOOK_UPLOAD_SUCCESS": "Documento PDF cargado exitosamente en la biblioteca.",
     "CT_BOOK_NOT_FOUND": "El documento no existe o no tienes permisos para eliminarlo.",
-    "CT_BOOK_DELETED_SUCCESS": "Registro eliminado y archivo físico removido con éxito."
+    "CT_BOOK_DELETED_SUCCESS": "Registro eliminado y archivo físico removido con éxito.",
+    "CT_BOOK_UPDATED_SUCCESS": "Metadatos del documento actualizados con éxito."
 }

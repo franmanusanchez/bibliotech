@@ -31,10 +31,10 @@
       */
      async create(bookData) 
      {
-         const { user_id, filename, title, author, category, pages, file_path } = bookData;
-         const [rows] = await db.execute('CALL sp_create_book(?, ?, ?, ?, ?, ?, ?)',
-             [user_id, filename, title, author, category, pages, file_path]);
-             
+        const { user_id, filename, title, author, category_id, pages, file_path } = bookData;
+        const [rows] = await db.execute('CALL sp_create_book(?, ?, ?, ?, ?, ?, ?)',
+            [user_id, filename, title, author, category_id, pages, file_path]);
+            
          // Los Stored Procedures de inserción fueron diseñados para devolver LAST_INSERT_ID()
          return rows[0][0].insertId;
      }
@@ -73,6 +73,30 @@
          await db.execute('CALL sp_delete_book(?, ?)', [id, userId]);
          return true;
      }
+
+     /**
+     * @brief Actualiza los metadatos documentales de un PDF.
+     * @details Invoca al SP sp_update_book_metadata de forma asincrónica.
+     * 
+     * @param {number} id ID del libro a modificar.
+     * @param {number} userId ID del usuario activo.
+     * @param {Object} bookData Objeto con (title, author, category_id, pages).
+     * @returns {Promise<boolean>} true si la base de datos reportó filas afectadas.
+     * 
+     * @note Criterio 1 cumplido: Se utilizan Prepared Statements (array de ?) 
+     * a través de db.execute para evitar inyección SQL.
+     */
+    async updateMetadata(id, userId, bookData) 
+    {
+        const { title, author, category_id, pages } = bookData;
+        
+        const [result] = await db.execute(
+            'CALL sp_update_book_metadata(?, ?, ?, ?, ?, ?)',
+            [id, userId, title, author, category_id, pages]
+        );
+        
+        return result.affectedRows > 0;
+    }
  }
  
  module.exports = new BookRepository();

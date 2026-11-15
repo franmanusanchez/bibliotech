@@ -10,6 +10,7 @@
  const fileHelper = require('../utils/file_helper/file_helper');
  const bookRepository = require('../repositories/book_repository');
  const i18n = require('../utils/i18n/i18n'); // Inyección del gestor de idiomas
+ const auditRepository = require('../repositories/audit_repository');
  
  /**
   * @class BookController
@@ -27,7 +28,7 @@
      {
          try 
          {
-             const { title, author, category, pages } = req.body;
+             const { title, author, category_id, pages } = req.body;
              const userId = req.userId;
              const filename = req.file.filename;
              const filePath = `/uploads/${filename}`;
@@ -38,7 +39,7 @@
                  filename,
                  title,
                  author,
-                 category,
+                 category_id,
                  pages: parseInt(pages) || 0,
                  file_path: filePath
              });
@@ -103,6 +104,18 @@
  
              // Eliminar archivo físico en disco de forma síncrona
              fileHelper.deleteFile(book.file_path); 
+
+
+
+                         /**
+             * @note Auditoría asincrónica (fire-and-forget): no se usa await para no
+             * demorar la respuesta ni convertir en error un borrado que ya se concretó.
+             * El .catch() es obligatorio para no dejar una promesa rechazada sin manejar.
+             */
+            auditRepository.create(userId, 'DELETE_BOOK', `Libro ID: ${id} - "${book.title}"`)
+                .catch((auditError) => console.error('[Audit] No se pudo registrar DELETE_BOOK:', auditError));
+
+                
              
              const message = i18n.getMessage('CT_BOOK_DELETED_SUCCESS');
              res.json({ message });
@@ -112,6 +125,46 @@
              next(error);
          }
      }
+
+     /**
+     * @brief Actualiza los metadatos de un documento sin modificar su archivo físico.
+     * @details Implementa la lógica de negocio para la edición de libros requerida 
+     * en el Requerimiento A.
+     * 
+     * @param {Object} req Petición HTTP. Debe contener los parámetros en el body.
+     * @param {Object} res Respuesta HTTP.
+     * @param {Function} next Función para delegar errores.
+     * 
+     * @note Criterio 3 cumplido: En caso de error (ej. caída de conexión MySQL), 
+     * la excepción se pasa a `next(error)` en lugar de enviar un res.status(500) directo, 
+     * delegando la responsabilidad al global_error_middleware.
+     */
+    async updateBook(req, res, next) 
+    {
+        try 
+        {
+            const { id } = req.params;
+            const userId = req.userId;
+            const bookData = req.body; // title, author, category_id, pages
+
+            // Intentamos actualizar la base de datos
+            const success = await bookRepository.updateMetadata(id, userId, bookData);
+
+            if (!success) 
+            {
+                // Si la BD devuelve 0 filas afectadas, o el libro no existe o no es de este usuario
+                const message = i18n.getMessage('CT_BOOK_NOT_FOUND');
+                return res.status(404).json({ message });
+            }
+
+            const message = i18n.getMessage('CT_BOOK_UPDATED_SUCCESS');
+            res.status(200).json({ message });
+        }
+        catch (error)
+        {
+            next(error); // Delegación de errores global
+        }
+    }
  }
  
  module.exports = new BookController();

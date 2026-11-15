@@ -9,6 +9,13 @@
 
  document.addEventListener('DOMContentLoaded', loadBooks);
 
+
+document.addEventListener('DOMContentLoaded', loadCategories);
+
+
+let availableCategories = [];
+
+
  async function loadBooks() 
  {
      try 
@@ -21,7 +28,53 @@
          showModal('Error', 'No se pudieron cargar los documentos: ' + error.message);
      }
  }
- 
+
+ //agregada
+ /**
+ * @brief Carga las categorías desde la API y las inyecta en el <select>.
+ * @note Se usa createElement y textContent (nunca innerHTML) para mantener
+ * la política Zero-XSS: el nombre de la categoría viene de la base de datos
+ * y se trata siempre como texto plano, no como HTML.
+ * @note Es independiente de loadBooks(): si falla una, la otra sigue funcionando.
+ */
+async function loadCategories()
+{
+    const select = document.getElementById('category');
+    const submitButton = uploadForm ? uploadForm.querySelector('button[type="submit"]') : null;
+
+    try
+    {
+        const categories = await apiService.request('/categories', 'GET');
+
+        availableCategories = categories;
+
+        // Se vacía antes de llenar para evitar opciones duplicadas si se recarga
+        select.replaceChildren();
+
+        categories.forEach(c =>
+        {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = c.name;
+            select.appendChild(option);
+        });
+
+        // Sin categorías no se puede cargar un libro: se bloquea el envío
+        if (submitButton)
+        {
+            submitButton.disabled = categories.length === 0;
+        }
+    }
+    catch (error)
+    {
+        if (submitButton)
+        {
+            submitButton.disabled = true;
+        }
+        showModal('Error', 'No se pudieron cargar las categorías: ' + error.message);
+    }
+}
+ //aca en adelante original
  function renderBooksTable(books) 
  {
      const tbody = document.getElementById('booksTableBody');
@@ -68,6 +121,30 @@
          tdReading.appendChild(linkDownload);
  
          const tdActions = document.createElement('td');
+
+         // --- INICIO NUEVO BOTÓN EDITAR ---
+         const btnEdit = document.createElement('button');
+         btnEdit.className = 'w3-button w3-blue w3-tiny w3-round w3-margin-right';
+         btnEdit.textContent = 'Editar';
+         btnEdit.addEventListener('click', () => 
+         {
+             showEditModal(b,availableCategories, async (updatedData) => 
+             {
+                 try 
+                 {
+                     await apiService.request(`/books/${b.id}`, 'PUT', updatedData);
+                     showModal('Éxito', 'Metadatos actualizados correctamente.');
+                     loadBooks(); 
+                 } 
+                 catch (error)
+                 {
+                     showModal('Error de Validación', error.message);
+                 }
+             });
+         });
+         tdActions.appendChild(btnEdit);
+         // --- FIN NUEVO BOTÓN EDITAR ---
+
          const btnDelete = document.createElement('button');
          btnDelete.className = 'w3-button w3-red w3-tiny w3-round';
          btnDelete.textContent = 'Borrar';
@@ -75,6 +152,7 @@
          {
              deleteBook(b.id);
          });
+         
          tdActions.appendChild(btnDelete);
  
          row.append(tdTitle, tdAuthor, tdCategory, tdPages, tdReading, tdActions);
@@ -123,7 +201,7 @@
         const formData = new FormData();
         formData.append('title', document.getElementById('title').value);
         formData.append('author', document.getElementById('author').value);
-        formData.append('category', document.getElementById('category').value);
+        formData.append('category_id', document.getElementById('category').value);
         formData.append('pages', document.getElementById('pages').value);
         
         // files[0] accede al binario crudo del archivo seleccionado en el input de tipo file

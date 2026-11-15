@@ -36,6 +36,21 @@
              const message = i18n.getMessage('CT_MYSQL_ER_DUP_ENTRY');
              return res.status(409).json({ message });
          }
+
+
+                 /**
+         * @note Violación de Clave Foránea: ocurre cuando se intenta referenciar un
+         * registro inexistente (por ejemplo un category_id inválido enviado a mano).
+         * Es un error del cliente, no del servidor, por eso responde 400 y no 500.
+         */
+        if (err.code === 'ER_NO_REFERENCED_ROW_2')
+        {
+            const message = i18n.getMessage('CT_MYSQL_ER_NO_REFERENCED_ROW_2');
+            return res.status(400).json({ message });
+        }
+
+
+        
  
          if (err.code === 'ECONNREFUSED') 
          {
