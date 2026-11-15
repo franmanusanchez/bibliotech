@@ -50,7 +50,9 @@
  const adminRoutes = require('./routes/admin_routes');
  const viewRoutes = require('./routes/view_routes');
  const testsRoutes = require('./routes/tests_routes');
- 
+ const categoryRoutes = require('./routes/category_routes');
+
+
  // Inyección del manejador global de excepciones
  const globalErrorMiddleware = require('./middleware/global_error_middleware');
  
@@ -93,6 +95,7 @@
  
  app.use('/api/auth', authRoutes);
  app.use('/api/books', bookRoutes);
+ app.use('/api/categories', categoryRoutes);
  app.use('/api/admin', adminRoutes);
  
  // --- 4. Enrutador de Vistas (UI o Testing) ---
