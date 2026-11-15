@@ -272,6 +272,37 @@ BEGIN
     DELETE FROM books WHERE id = p_id AND user_id = p_user_id;
 END //
 
+/*
+ * @brief Actualiza los metadatos de un documento existente.
+ * @details Modifica los campos editables de un libro sin alterar su archivo físico.
+ * @param p_id Identificador único del libro.
+ * @param p_user_id Identificador del usuario propietario.
+ * @param p_title Nuevo título del libro.
+ * @param p_author Nuevo autor del libro.
+ * @param p_category_id Id de la nueva categoría (FK a categories). Se recibe el id
+ * y no el nombre para que la base garantice que la categoría existe.
+ * @param p_pages Nueva cantidad de páginas.
+ * @note Seguridad Técnica: Se exige p_user_id en la cláusula WHERE para 
+ * prevenir vulnerabilidades IDOR. Esto garantiza que un usuario malicioso 
+ * no pueda editar un libro ajeno alterando el ID en la URL.
+ */
+CREATE PROCEDURE sp_update_book_metadata(
+    IN p_id INT,
+    IN p_user_id INT,
+    IN p_title VARCHAR(100),
+    IN p_author VARCHAR(100),
+    IN p_category_id VARCHAR(50),
+    IN p_pages INT
+)
+BEGIN
+    UPDATE books 
+    SET title = p_title,
+        author = p_author,
+        category_id = p_category_id,
+        pages = p_pages
+    WHERE id = p_id AND user_id = p_user_id;
+END //
+
 
 /*
  * @brief Inserta un nuevo registro en la bitácora de auditoría.

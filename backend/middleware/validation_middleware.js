@@ -119,7 +119,37 @@
              }
              return res.status(400).json({ message: error.message });
          }
-     }
+     },
+    /**
+     * @brief Valida la actualización de metadatos de un libro.
+     * @note Requerimiento A: Reutiliza las estrategias del Validator para 
+     * evitar campos vacíos, pero omite la exigencia de req.file, ya que 
+     * en un PUT de metadatos no se sube un nuevo archivo binario.
+     * @param {Object} req Petición HTTP (PUT).
+     * @param {Object} res Objeto de respuesta HTTP.
+     * @param {Function} next Función de delegación de Express.
+     */
+    validateBookEdit: (req, res, next) => 
+    {
+        const validator = new Validator();
+        const { title, author, category_id, pages } = req.body;
+
+        try 
+        {
+            validator.validateThis(title).with(new Required("CT_REQ_TITLE"));
+            validator.validateThis(author).with(new Required("CT_REQ_AUTHOR"));
+            validator.validateThis(category_id)
+                     .with(new Required("CT_REQ_CATEGORY"))
+                     .with(new PositiveInteger("CT_REQ_CATEGORY"));
+            validator.validateThis(pages).with(new PositiveNumber("CT_PAGES_POSITIVE"));
+
+            next();
+        } 
+        catch (error) 
+        {
+            return res.status(400).json({ message: error.message });
+        }
+    }
  };
  
  module.exports = validationMiddleware;

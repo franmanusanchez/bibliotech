@@ -84,10 +84,60 @@
      {
          testUtils.setSuccess(btn);
      }
+
+     
+ });
+
+ 
+
+  // 3. Test Editar Metadatos - Requerimiento A (PUT)
+ testUtils.createTestButton("Test Editar Metadatos (Req. A)", async (btn) => 
+ {
+     // 1. Setup: Iniciar sesión para obtener el token
+     await okLogin();
+     const token = localStorage.getItem('test_token');
+     const authHeader = { 'Authorization': `Bearer ${token}` };
+
+     // 2. Datos reales: no se asume ningún id fijo, se toman de la API
+     const categories = await (await fetch('/api/categories', { headers: authHeader })).json();
+     const books = await (await fetch('/api/books/my-books', { headers: authHeader })).json();
+
+     if (books.length === 0)
+     {
+         testUtils.log({ message: 'No hay libros para editar. Ejecutá primero "Test Subir Libro PDF (Simulado)".' });
+         return;
+     }
+
+     // 3. JSON con los datos nuevos (la categoría se envía como id, no como texto)
+     const updatedData = {
+         title: 'El Señor de los Anillos: La Comunidad del Anillo',
+         author: 'J.R.R. Tolkien',
+         category_id: categories[categories.length - 1].id,
+         pages: 423
+     };
+     
+     // 4. Ejecutar: PUT sobre el primer libro del usuario
+     const response = await fetch(`/api/books/${books[0].id}`, {
+         method: 'PUT',
+         headers: { ...authHeader, 'Content-Type': 'application/json' },
+         body: JSON.stringify(updatedData)
+     });
+ 
+     // 5. Leer respuesta para la consola virtual
+     const data = await response.json();
+     testUtils.log(data);
+     
+     // 6. Assert: Verificar que el servidor devolvió un 200 OK
+     if (response.ok) 
+     {
+         testUtils.setSuccess(btn);
+     }
  });
 
 
-  // 3. Listar Categorías (GET protegido)
+
+
+  // 4. Listar Categorías (GET protegido)
  testUtils.createTestButton("Test Listar Categorías", async (btn) => 
  {
      await okLogin();
@@ -106,7 +156,7 @@
      }
  });
  
- // 4. Subir Libro con categoría inexistente (debe fallar con 400)
+ // 5. Subir Libro con categoría inexistente (debe fallar con 400)
  testUtils.createTestButton("Test Categoría Inexistente (espera 400)", async (btn) => 
  {
      await okLogin();

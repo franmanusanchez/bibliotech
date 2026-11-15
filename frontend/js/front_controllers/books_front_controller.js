@@ -9,8 +9,12 @@
 
  document.addEventListener('DOMContentLoaded', loadBooks);
 
-//agregado
+
 document.addEventListener('DOMContentLoaded', loadCategories);
+
+
+let availableCategories = [];
+
 
  async function loadBooks() 
  {
@@ -41,6 +45,8 @@ async function loadCategories()
     try
     {
         const categories = await apiService.request('/categories', 'GET');
+
+        availableCategories = categories;
 
         // Se vacía antes de llenar para evitar opciones duplicadas si se recarga
         select.replaceChildren();
@@ -115,6 +121,30 @@ async function loadCategories()
          tdReading.appendChild(linkDownload);
  
          const tdActions = document.createElement('td');
+
+         // --- INICIO NUEVO BOTÓN EDITAR ---
+         const btnEdit = document.createElement('button');
+         btnEdit.className = 'w3-button w3-blue w3-tiny w3-round w3-margin-right';
+         btnEdit.textContent = 'Editar';
+         btnEdit.addEventListener('click', () => 
+         {
+             showEditModal(b,availableCategories, async (updatedData) => 
+             {
+                 try 
+                 {
+                     await apiService.request(`/books/${b.id}`, 'PUT', updatedData);
+                     showModal('Éxito', 'Metadatos actualizados correctamente.');
+                     loadBooks(); 
+                 } 
+                 catch (error)
+                 {
+                     showModal('Error de Validación', error.message);
+                 }
+             });
+         });
+         tdActions.appendChild(btnEdit);
+         // --- FIN NUEVO BOTÓN EDITAR ---
+
          const btnDelete = document.createElement('button');
          btnDelete.className = 'w3-button w3-red w3-tiny w3-round';
          btnDelete.textContent = 'Borrar';
@@ -122,6 +152,7 @@ async function loadCategories()
          {
              deleteBook(b.id);
          });
+         
          tdActions.appendChild(btnDelete);
  
          row.append(tdTitle, tdAuthor, tdCategory, tdPages, tdReading, tdActions);
