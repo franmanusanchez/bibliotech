@@ -65,8 +65,24 @@ CREATE TABLE users_roles (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
+
 /*
- * @brief 6. Tabla de Libros/Documentos (Relación 1:N con Usuarios)
+ * @brief 6. Tabla de Categorías (Catálogo normalizado)
+ * @details Se extrae la categoría a una entidad propia en lugar de guardarla
+ * como texto libre en cada libro. Así el catálogo se administra en un único
+ * lugar y se evitan inconsistencias de escritura ("Novela" vs "novela").
+ * @note UNIQUE sobre 'name': impide duplicar categorías con el mismo nombre.
+ */
+CREATE TABLE categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+/*
+ * @brief 7. Tabla de Libros/Documentos (Relación 1:N con Usuarios y Categorías)
+ * @note La FK a 'categories' usa el comportamiento por defecto (RESTRICT):
+ * no se puede borrar una categoría que tenga libros asociados, lo que protege
+ * la integridad referencial.
  */
 CREATE TABLE books (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,13 +90,39 @@ CREATE TABLE books (
     filename VARCHAR(255) NOT NULL,
     title VARCHAR(100) NOT NULL,
     author VARCHAR(100) NOT NULL,
-    category VARCHAR(50),
+    category_id INT NOT NULL,
     pages INT DEFAULT 0,
     file_path VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+/*
+ * @brief Tabla de Auditoría de Eventos Críticos.
+ * @details Almacena la trazabilidad de eliminaciones de libros y usuarios.
+ * @note Se utiliza ON DELETE SET NULL en user_id para conservar el historial
+ * de auditoría incluso si el usuario que ejecutó la acción es eliminado.
+ */
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    action VARCHAR(50) NOT NULL,
+    target VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+
+/*
+ * @brief Datos semilla de categorías (las 5 que antes estaban hardcodeadas en el HTML).
+ */
+INSERT INTO categories (name) VALUES
+    ('Novela'),
+    ('Ciencia Ficción'),
+    ('Técnico / Académico'),
+    ('Historia'),
+    ('Poesía');
+    
 -- 7. Inserción de Roles Maestros
 INSERT INTO roles (name) VALUES ('admin'), ('client');
 
@@ -165,30 +207,52 @@ BEGIN
 END //
 
 -- --- PROCEDIMIENTOS PARA BOOKS ---
-
 /*
  * @brief Registra los metadatos de un archivo PDF subido al servidor.
+ * @param p_category_id Id de la categoría (FK a categories). Se recibe el id
+ * y no el nombre para que la base garantice que la categoría existe.
  */
 CREATE PROCEDURE sp_create_book(
     IN p_user_id INT,
     IN p_filename VARCHAR(255),
     IN p_title VARCHAR(100),
     IN p_author VARCHAR(100),
-    IN p_category VARCHAR(50),
+    IN p_category_id INT,
     IN p_pages INT,
     IN p_file_path VARCHAR(255)
 )
 BEGIN
-    INSERT INTO books (user_id, filename, title, author, category, pages, file_path)
-    VALUES (p_user_id, p_filename, p_title, p_author, p_category, p_pages, p_file_path);
+    INSERT INTO books (user_id, filename, title, author, category_id, pages, file_path)
+    VALUES (p_user_id, p_filename, p_title, p_author, p_category_id, p_pages, p_file_path);
     SELECT LAST_INSERT_ID() as insertId;
 END //
 
--- Listar libros asociados a un usuario específico
+/*
+ * @brief Lista los libros de un usuario junto con el nombre de su categoría.
+ * @note El JOIN con 'categories' devuelve el nombre con el alias 'category',
+ * así el frontend sigue leyendo b.category sin cambios. 'b.*' ya incluye
+ * 'category_id', que va a necesitar el modal de edición.
+ */
 CREATE PROCEDURE sp_find_books_by_user(IN p_user_id INT)
 BEGIN
-    SELECT * FROM books WHERE user_id = p_user_id;
+    SELECT b.*, c.name AS category
+    FROM books b
+    JOIN categories c ON b.category_id = c.id
+    WHERE b.user_id = p_user_id;
 END //
+
+-- --- PROCEDIMIENTOS PARA CATEGORIES ---
+
+/*
+ * @brief Devuelve todas las categorías disponibles, ordenadas alfabéticamente.
+ * @note Se ordena en la base para que cada cliente reciba la lista ya lista
+ * para mostrarse en el <select>, sin lógica de ordenamiento en el frontend.
+ */
+CREATE PROCEDURE sp_get_all_categories()
+BEGIN
+    SELECT id, name FROM categories ORDER BY name;
+END //
+
 
 /*
  * @brief Busca un libro específico (Validando autoría)
@@ -239,5 +303,21 @@ BEGIN
     WHERE id = p_id AND user_id = p_user_id;
 END //
 
+
+/*
+ * @brief Inserta un nuevo registro en la bitácora de auditoría.
+ * @param p_user_id ID del usuario que ejecuta la acción.
+ * @param p_action Código del evento crítico ('DELETE_BOOK' o 'DELETE_USER').
+ * @param p_target Identificador o detalle del recurso eliminado.
+ */
+CREATE PROCEDURE sp_create_audit_log(
+    IN p_user_id INT,
+    IN p_action VARCHAR(50),
+    IN p_target VARCHAR(255)
+)
+BEGIN
+    INSERT INTO audit_logs (user_id, action, target)
+    VALUES (p_user_id, p_action, p_target);
+END //
 DELIMITER ;
 SET foreign_key_checks = 1;
