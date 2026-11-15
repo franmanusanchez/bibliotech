@@ -80,7 +80,20 @@ CREATE TABLE books (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
+/*
+ * @brief Tabla de Auditoría de Eventos Críticos.
+ * @details Almacena la trazabilidad de eliminaciones de libros y usuarios.
+ * @note Se utiliza ON DELETE SET NULL en user_id para conservar el historial
+ * de auditoría incluso si el usuario que ejecutó la acción es eliminado.
+ */
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    action VARCHAR(50) NOT NULL,
+    target VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
 -- 7. Inserción de Roles Maestros
 INSERT INTO roles (name) VALUES ('admin'), ('client');
 
@@ -208,5 +221,21 @@ BEGIN
     DELETE FROM books WHERE id = p_id AND user_id = p_user_id;
 END //
 
+
+/*
+ * @brief Inserta un nuevo registro en la bitácora de auditoría.
+ * @param p_user_id ID del usuario que ejecuta la acción.
+ * @param p_action Código del evento crítico ('DELETE_BOOK' o 'DELETE_USER').
+ * @param p_target Identificador o detalle del recurso eliminado.
+ */
+CREATE PROCEDURE sp_create_audit_log(
+    IN p_user_id INT,
+    IN p_action VARCHAR(50),
+    IN p_target VARCHAR(255)
+)
+BEGIN
+    INSERT INTO audit_logs (user_id, action, target)
+    VALUES (p_user_id, p_action, p_target);
+END //
 DELIMITER ;
 SET foreign_key_checks = 1;
