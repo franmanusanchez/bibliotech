@@ -135,3 +135,110 @@
      document.getElementById('pdfIframe').src = pdfUrl;
      modal.style.display = 'block';
  }
+
+ /**
+ * @brief Construye dinámicamente la ventana modal para editar metadatos.
+ * @details Manipulación estricta del DOM (Zero-innerHTML) para prevenir Cross-Site Scripting (XSS).
+ * 
+ * @param {Object} book Objeto con los datos actuales del libro seleccionado.
+ * @param {Function} onSave Función Callback (asincrónica) que se ejecutará al guardar.
+ */
+function showEditModal(book, onSave) 
+{
+    let modal = document.getElementById('editModal');
+
+    // Patrón Singleton: Solo armamos todo el árbol HTML si el modal no existe previamente
+    if (!modal) 
+    {
+        modal = document.createElement('div');
+        modal.id = 'editModal';
+        modal.className = 'w3-modal';
+        modal.style.zIndex = '9999';
+
+        const content = document.createElement('div');
+        content.className = 'w3-modal-content w3-card-4 w3-animate-zoom vault-card';
+        content.style.maxWidth = '500px';
+
+        const header = document.createElement('header');
+        header.className = 'w3-container w3-border-bottom w3-padding';
+        
+        const titleElem = document.createElement('h3');
+        titleElem.textContent = 'Editar Metadatos del Documento';
+        titleElem.className = 'w3-margin-0 w3-text-teal';
+        header.appendChild(titleElem);
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'w3-container w3-padding';
+
+        // Función de utilidad interna para no repetir código al crear los 4 inputs
+        const createInput = (id, labelText, type = 'text') => {
+            const label = document.createElement('label');
+            label.textContent = labelText;
+            label.className = 'w3-text-teal';
+            
+            const input = document.createElement('input');
+            input.id = id;
+            input.type = type;
+            input.className = 'w3-input w3-border w3-round w3-margin-bottom';
+            
+            bodyDiv.appendChild(label);
+            bodyDiv.appendChild(input);
+        };
+
+        createInput('editTitle', 'Título');
+        createInput('editAuthor', 'Autor');
+        createInput('editCategory', 'Categoría');
+        createInput('editPages', 'Páginas', 'number');
+
+        const footerDiv = document.createElement('div');
+        footerDiv.className = 'w3-container w3-padding-16 w3-light-grey w3-border-top';
+
+        const btnSave = document.createElement('button');
+        btnSave.id = 'btnSaveEdit';
+        btnSave.className = 'w3-button w3-right w3-teal w3-round';
+        btnSave.textContent = 'Guardar Cambios';
+
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'w3-button w3-right w3-dark-grey w3-round w3-margin-right';
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.addEventListener('click', () => { 
+            modal.style.display = 'none'; 
+        });
+
+        footerDiv.appendChild(btnSave);
+        footerDiv.appendChild(btnCancel);
+
+        // Ensamblaje final de las "cajas" HTML
+        content.append(header, bodyDiv, footerDiv);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+    }
+
+    // 1. Cargar los datos actuales del libro en los inputs para que el usuario los vea
+    document.getElementById('editTitle').value = book.title;
+    document.getElementById('editAuthor').value = book.author;
+    document.getElementById('editCategory').value = book.category;
+    document.getElementById('editPages').value = book.pages;
+
+    // 2. Limpiar el evento anterior (si el usuario abrió otro libro antes) y asignar el nuevo
+    const btnSave = document.getElementById('btnSaveEdit');
+    btnSave.onclick = async () => 
+    {
+        btnSave.disabled = true; // Desactivar botón para evitar doble clic
+        
+        const updatedData = {
+            title: document.getElementById('editTitle').value,
+            author: document.getElementById('editAuthor').value,
+            category: document.getElementById('editCategory').value,
+            pages: document.getElementById('editPages').value
+        };
+        
+        // Ejecuta la orden de guardado que le va a mandar el Controlador Frontend
+        await onSave(updatedData); 
+        
+        modal.style.display = 'none';
+        btnSave.disabled = false;
+    };
+
+    modal.style.display = 'block'; // Mostrar la ventana
+}

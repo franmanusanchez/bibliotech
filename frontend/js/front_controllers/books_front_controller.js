@@ -68,6 +68,30 @@
          tdReading.appendChild(linkDownload);
  
          const tdActions = document.createElement('td');
+
+         // --- INICIO NUEVO BOTÓN EDITAR ---
+         const btnEdit = document.createElement('button');
+         btnEdit.className = 'w3-button w3-blue w3-tiny w3-round w3-margin-right';
+         btnEdit.textContent = 'Editar';
+         btnEdit.addEventListener('click', () => 
+         {
+             showEditModal(b, async (updatedData) => 
+             {
+                 try 
+                 {
+                     await apiService.request(`/books/${b.id}`, 'PUT', updatedData);
+                     showModal('Éxito', 'Metadatos actualizados correctamente.');
+                     loadBooks(); 
+                 } 
+                 catch (error)
+                 {
+                     showModal('Error de Validación', error.message);
+                 }
+             });
+         });
+         tdActions.appendChild(btnEdit);
+         // --- FIN NUEVO BOTÓN EDITAR ---
+
          const btnDelete = document.createElement('button');
          btnDelete.className = 'w3-button w3-red w3-tiny w3-round';
          btnDelete.textContent = 'Borrar';
@@ -75,6 +99,7 @@
          {
              deleteBook(b.id);
          });
+         
          tdActions.appendChild(btnDelete);
  
          row.append(tdTitle, tdAuthor, tdCategory, tdPages, tdReading, tdActions);

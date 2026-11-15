@@ -76,4 +76,43 @@
      {
          testUtils.setSuccess(btn);
      }
+
+     
+ });
+
+ // 3. Test Editar Metadatos - Requerimiento A (PUT)
+ testUtils.createTestButton("Test Editar Metadatos (Req. A)", async (btn) => 
+ {
+     // 1. Setup: Iniciar sesión para obtener el token
+     await okLogin();
+     const token = localStorage.getItem('test_token');
+     
+     // 2. Preparar el JSON con los datos nuevos
+     const updatedData = {
+         title: 'El Señor de los Anillos: La Comunidad del Anillo',
+         author: 'J.R.R. Tolkien',
+         category: 'Fantasía',
+         pages: 423
+     };
+     
+     // 3. Ejecutar: Petición PUT hacia la ruta que armaste en book_routes.js
+     // Usamos el ID "1" asumiendo que al menos un libro fue subido en las pruebas anteriores.
+     const response = await fetch('/api/books/1', {
+         method: 'PUT',
+         headers: { 
+             'Authorization': `Bearer ${token}`,
+             'Content-Type': 'application/json' 
+         },
+         body: JSON.stringify(updatedData)
+     });
+ 
+     // 4. Leer respuesta para la consola virtual
+     const data = await response.json();
+     testUtils.log(data);
+     
+     // 5. Assert: Verificar que el servidor devolvió un 200 OK
+     if (response.ok) 
+     {
+         testUtils.setSuccess(btn);
+     }
  });
