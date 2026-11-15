@@ -10,6 +10,7 @@
  const fileHelper = require('../utils/file_helper/file_helper');
  const bookRepository = require('../repositories/book_repository');
  const i18n = require('../utils/i18n/i18n'); // Inyección del gestor de idiomas
+ const auditRepository = require('../repositories/audit_repository');
  
  /**
   * @class BookController
@@ -103,6 +104,18 @@
  
              // Eliminar archivo físico en disco de forma síncrona
              fileHelper.deleteFile(book.file_path); 
+
+
+
+                         /**
+             * @note Auditoría asincrónica (fire-and-forget): no se usa await para no
+             * demorar la respuesta ni convertir en error un borrado que ya se concretó.
+             * El .catch() es obligatorio para no dejar una promesa rechazada sin manejar.
+             */
+            auditRepository.create(userId, 'DELETE_BOOK', `Libro ID: ${id} - "${book.title}"`)
+                .catch((auditError) => console.error('[Audit] No se pudo registrar DELETE_BOOK:', auditError));
+
+                
              
              const message = i18n.getMessage('CT_BOOK_DELETED_SUCCESS');
              res.json({ message });

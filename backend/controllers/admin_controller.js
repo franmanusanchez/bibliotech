@@ -11,7 +11,9 @@
  const bookRepository = require('../repositories/book_repository');
  const fileHelper = require('../utils/file_helper/file_helper');
  const i18n = require('../utils/i18n/i18n'); // Inyección del gestor de idiomas
- 
+ const auditRepository = require('../repositories/audit_repository');
+
+
  /**
   * @class AdminController
   * @brief Agrupa la lógica de negocio para operaciones de alto privilegio (Administrador).
@@ -72,6 +74,11 @@
  
              // Limpieza física: Eliminar almacenamiento en disco
              userBooks.forEach(book => {fileHelper.deleteFile(book.file_path);});
+
+
+            // Auditoría asincrónica (ver nota equivalente en book_controller.js)
+            auditRepository.create(adminId, 'DELETE_USER', `Usuario ID: ${targetUserId} (Libros eliminados: ${userBooks.length})`)
+                .catch((auditError) => console.error('[Audit] No se pudo registrar DELETE_USER:', auditError));
  
              // Reemplazo dinámico (%s) para mostrar la cantidad de archivos borrados
              const message = i18n.getMessage('CT_ADMIN_USER_DELETED').replace('%s', userBooks.length);
