@@ -145,7 +145,7 @@
         {
             const { id } = req.params;
             const userId = req.userId;
-            const bookData = req.body; // title, author, category, pages
+            const bookData = req.body; // title, author, category_id, pages
 
             // Intentamos actualizar la base de datos
             const success = await bookRepository.updateMetadata(id, userId, bookData);
@@ -157,7 +157,7 @@
                 return res.status(404).json({ message });
             }
 
-            const message = "Libro actualizado correctamente."; // Nota: En un proyecto real esto iría en el i18n
+            const message = i18n.getMessage('CT_BOOK_UPDATED_SUCCESS');
             res.status(200).json({ message });
         }
         catch (error)

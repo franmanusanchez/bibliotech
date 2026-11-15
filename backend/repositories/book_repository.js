@@ -80,7 +80,7 @@
      * 
      * @param {number} id ID del libro a modificar.
      * @param {number} userId ID del usuario activo.
-     * @param {Object} bookData Objeto con (title, author, category, pages).
+     * @param {Object} bookData Objeto con (title, author, category_id, pages).
      * @returns {Promise<boolean>} true si la base de datos reportó filas afectadas.
      * 
      * @note Criterio 1 cumplido: Se utilizan Prepared Statements (array de ?) 
@@ -88,11 +88,11 @@
      */
     async updateMetadata(id, userId, bookData) 
     {
-        const { title, author, category, pages } = bookData;
+        const { title, author, category_id, pages } = bookData;
         
         const [result] = await db.execute(
             'CALL sp_update_book_metadata(?, ?, ?, ?, ?, ?)',
-            [id, userId, title, author, category, pages]
+            [id, userId, title, author, category_id, pages]
         );
         
         return result.affectedRows > 0;

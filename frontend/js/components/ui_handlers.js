@@ -143,7 +143,7 @@
  * @param {Object} book Objeto con los datos actuales del libro seleccionado.
  * @param {Function} onSave Función Callback (asincrónica) que se ejecutará al guardar.
  */
-function showEditModal(book, onSave) 
+function showEditModal(book,categories, onSave) 
 {
     let modal = document.getElementById('editModal');
 
@@ -187,7 +187,22 @@ function showEditModal(book, onSave)
 
         createInput('editTitle', 'Título');
         createInput('editAuthor', 'Autor');
-        createInput('editCategory', 'Categoría');
+
+
+        // La categoría es un <select> y no un input libre: el usuario solo puede
+        // elegir ids que existen en la base 
+        const categoryLabel = document.createElement('label');
+        categoryLabel.textContent = 'Categoría';
+        categoryLabel.className = 'w3-text-teal';
+
+        const categorySelect = document.createElement('select');
+        categorySelect.id = 'editCategory';
+        categorySelect.className = 'w3-select w3-border w3-round w3-margin-bottom';
+
+        bodyDiv.appendChild(categoryLabel);
+        bodyDiv.appendChild(categorySelect);
+
+
         createInput('editPages', 'Páginas', 'number');
 
         const footerDiv = document.createElement('div');
@@ -217,7 +232,24 @@ function showEditModal(book, onSave)
     // 1. Cargar los datos actuales del libro en los inputs para que el usuario los vea
     document.getElementById('editTitle').value = book.title;
     document.getElementById('editAuthor').value = book.author;
-    document.getElementById('editCategory').value = book.category;
+
+
+
+    // Las opciones se reconstruyen cada vez que se abre el modal (el modal es un
+    // Singleton y la lista puede haber cambiado). Zero-innerHTML: createElement + textContent.
+    const categorySelect = document.getElementById('editCategory');
+    categorySelect.replaceChildren();
+    categories.forEach(c => 
+    {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = c.name;
+        categorySelect.appendChild(option);
+    });
+    categorySelect.value = book.category_id;
+
+
+
     document.getElementById('editPages').value = book.pages;
 
     // 2. Limpiar el evento anterior (si el usuario abrió otro libro antes) y asignar el nuevo
@@ -229,7 +261,7 @@ function showEditModal(book, onSave)
         const updatedData = {
             title: document.getElementById('editTitle').value,
             author: document.getElementById('editAuthor').value,
-            category: document.getElementById('editCategory').value,
+            category_id: document.getElementById('editCategory').value,
             pages: document.getElementById('editPages').value
         };
         

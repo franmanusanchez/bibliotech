@@ -9,8 +9,12 @@
 
  document.addEventListener('DOMContentLoaded', loadBooks);
 
-//agregado
+
 document.addEventListener('DOMContentLoaded', loadCategories);
+
+
+let availableCategories = [];
+
 
  async function loadBooks() 
  {
@@ -41,6 +45,8 @@ async function loadCategories()
     try
     {
         const categories = await apiService.request('/categories', 'GET');
+
+        availableCategories = categories;
 
         // Se vacía antes de llenar para evitar opciones duplicadas si se recarga
         select.replaceChildren();
@@ -122,7 +128,7 @@ async function loadCategories()
          btnEdit.textContent = 'Editar';
          btnEdit.addEventListener('click', () => 
          {
-             showEditModal(b, async (updatedData) => 
+             showEditModal(b,availableCategories, async (updatedData) => 
              {
                  try 
                  {
